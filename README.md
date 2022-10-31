@@ -1,2 +1,2 @@
 # JavaProjects
-All projects that I creating in Java during my education in the university.
+All projects that I creating in <strong>Java</strong> during my education in the university.
