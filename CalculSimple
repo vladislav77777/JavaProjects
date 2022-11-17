@@ -1,0 +1,469 @@
+import java.util.Scanner;
+ 
+/**
+ * This is my Main class, here I will write my <strong>code</strong>.
+ *
+ * @author Vladislav Grigorev
+ * @version 1.1
+ * @since 1.0
+ */
+ 
+public final class Main {
+    /**
+     * This is scanner, allow us to get input lines.
+     */
+    private final Scanner scanner = new Scanner(System.in);
+ 
+    /**
+     * Here start point of the program.
+     * We are implementing a calculator.
+     * It allows us to perform various
+     * arithmetic operations on different types of data.
+     *
+     * @param args Array with parameters of the program
+     */
+    public static void main(String[] args) {
+        Calculator resultOperations = null; // the initial value should be null to be a barrier for the program
+        Main obj = new Main();
+        switch (obj.readCalculator()) {
+            case INTEGER:
+                resultOperations = new IntegerCalculator();
+                break;
+            case DOUBLE:
+                resultOperations = new DoubleCalculator();
+                break;
+            case STRING:
+                resultOperations = new StringCalculator();
+                break;
+            case INCORRECT:
+                obj.reportFatalError("Wrong calculator type"); // Invalid type
+                return;
+            default:
+        }
+        obj.parseCommands(obj.readCommandsNumber(), resultOperations);
+    }
+ 
+    /**
+     * Reads the first line.
+     * Using enum we implement code readability.
+     *
+     * @return The obtained type received via scanning
+     */
+    private CalculatorType readCalculator() {
+        String input = scanner.next();
+        switch (input) {
+            case "INTEGER":
+                return CalculatorType.INTEGER;
+            case "DOUBLE":
+                return CalculatorType.DOUBLE;
+            case "STRING":
+                return CalculatorType.STRING;
+            default:
+                return CalculatorType.INCORRECT;
+        }
+    }
+ 
+    /**
+     * This method allow us to read the number of commands.
+     *
+     * @return The obtained type received via scanning or Error message.
+     */
+    private int readCommandsNumber() {
+        Main obj = new Main();
+        if (!scanner.hasNextInt()) {
+            obj.reportFatalError("Amount of commands is Not a Number");
+            System.exit(0);
+        }
+        return scanner.nextInt();
+    }
+ 
+    /**
+     * This method prints the Errors.
+     *
+     * @param err Obtained error message via scanning.
+     */
+    private void reportFatalError(String err) {
+        System.out.println(err);
+    }
+ 
+    /**
+     * This method allows to get the enum value of the operator.
+     *
+     * @param operation The operator(+, -, *, /)
+     * @return enumeration in the text form
+     */
+    private OperationType parseOperation(String operation) {
+        switch (operation) {
+            case "+":
+                return OperationType.ADDITION;
+            case "-":
+                return OperationType.SUBTRACTION;
+            case "*":
+                return OperationType.MULTIPLICATION;
+            case "/":
+                return OperationType.DIVISION;
+            default:
+                return OperationType.INCORRECT;
+        }
+    }
+ 
+    /**
+     * This method is called to implement the main
+     * role of the program - choose and call the operations.
+     *
+     * @param inputCommandsNumber Number of commands.
+     * @param resultOperations    Obtained object of particular type.
+     */
+    private void parseCommands(int inputCommandsNumber, Calculator resultOperations) {
+        Main obj = new Main();
+ 
+        for (int i = 0; i < inputCommandsNumber; i++) {
+            OperationType operation = obj.parseOperation(scanner.next());
+            String a = scanner.next();
+            String b = scanner.next();
+            switch (operation) {
+                case INCORRECT:
+                    obj.reportFatalError("Wrong operation type");
+                    break;
+                case ADDITION:
+                    System.out.println(resultOperations.add(a, b));
+                    break;
+                case SUBTRACTION:
+                    System.out.println(resultOperations.subtract(a, b));
+                    break;
+                case MULTIPLICATION:
+                    System.out.println(resultOperations.multiply(a, b));
+                    break;
+                case DIVISION:
+                    System.out.println(resultOperations.divide(a, b));
+                    break;
+                default:
+            }
+        }
+    }
+}
+ 
+/**
+ * The parent abstract class.
+ * Implemented via inheritance and abstraction.
+ */
+abstract class Calculator {
+    protected abstract String add(String a, String b);       // abstract method, it overrides in the child classes(+).
+ 
+    protected abstract String subtract(String a, String b); // abstract method, it overrides in the child classes(-).
+ 
+    protected abstract String multiply(String a, String b); // abstract method, it overrides in the child classes(*).
+ 
+    protected abstract String divide(String a, String b);  // abstract method, it overrides in the child classes(/).
+ 
+    /**
+     * This method checks whether the input value is an integer.
+     *
+     * @param str The input string(it should be an
+     *            integer value)
+     * @return true - if it's integer,
+     * false - if it is NOT an integer
+     */
+    public boolean isInteger(String str) {
+        try {
+            Integer.parseInt(str);
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+        return true;
+    }
+ 
+    /**
+     * This method checks whether the input value is a double.
+     *
+     * @param str The input string(it should be a
+     *            double value)
+     * @return true - if it's double,<br>
+     * false - if it is NOT a double
+     */
+    public boolean isDouble(String str) {
+        try {
+            Double.parseDouble(str);
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+        return true;
+    }
+}
+ 
+/**
+ * The child non-abstract class.
+ * Implemented via inheritance.
+ * It works with integer values.
+ */
+class IntegerCalculator extends Calculator {
+    /**
+     * Method <i>add</i> the given integers.
+     *
+     * @param a The first input integer
+     * @param b The second input integer
+     * @return Error message - if at least one NOT integer<br>
+     * converted to string sum - if both are integer
+     */
+    @Override
+    public String add(String a, String b) {
+        if (!isInteger(a) || !isInteger(b)) {
+            return "Wrong argument type";
+        }
+        Integer operand1 = Integer.parseInt(a);
+        Integer operand2 = Integer.parseInt(b);
+        return Integer.toString(operand1 + operand2);
+    }
+ 
+    /**
+     * Method <i>subtract</i> the given integers.
+     *
+     * @param a The first input integer
+     * @param b The second input integer
+     * @return Error message - if at least one NOT integer<br>
+     * converted to string difference - if both are integer
+     */
+    @Override
+    public String subtract(String a, String b) {
+        if (!isInteger(a) || !isInteger(b)) {
+            return "Wrong argument type";
+        }
+        Integer operand1 = Integer.parseInt(a);
+        Integer operand2 = Integer.parseInt(b);
+        return Integer.toString(operand1 - operand2);
+    }
+ 
+    /**
+     * Method <i>multiply</i> the given integers.
+     *
+     * @param a The first input integer
+     * @param b The second input integer
+     * @return Error message - if at least one NOT integer<br>
+     * converted to string product - if both are integer
+     */
+    @Override
+    public String multiply(String a, String b) {
+        if (!isInteger(a) || !isInteger(b)) {
+            return "Wrong argument type";
+        }
+        Integer operand1 = Integer.parseInt(a);
+        Integer operand2 = Integer.parseInt(b);
+        return Integer.toString(operand1 * operand2);
+    }
+ 
+    /**
+     * Method <i>divide</i> the given integers.
+     *
+     * @param a The first input integer
+     * @param b The second input integer
+     * @return Error message - if at least one NOT integer
+     * or if we divide by zero<br>
+     * converted to string quotient - if both are integer
+     */
+    @Override
+    public String divide(String a, String b) {
+        if (!isInteger(a) || !isInteger(b)) {
+            return "Wrong argument type";
+        }
+        int operand1 = Integer.parseInt(a);
+        int operand2 = Integer.parseInt(b);
+        if (operand2 == 0) {
+            return "Division by zero";
+        }
+        return Integer.toString(operand1 / operand2);
+    }
+}
+ 
+/**
+ * The child non-abstract class.
+ * Implemented via inheritance.
+ * It works with double values.
+ */
+class DoubleCalculator extends Calculator {
+    /**
+     * Method <i>add</i> the given double values.
+     *
+     * @param a The first input double
+     * @param b The second input double
+     * @return Error message - if at least one NOT double<br>
+     * converted to string sum - if both are double
+     */
+    @Override
+    public String add(String a, String b) {
+        if (!isDouble(a) || !isDouble(b)) {
+            return "Wrong argument type";
+        }
+        Double operand1 = Double.parseDouble(a);
+        Double operand2 = Double.parseDouble(b);
+        return Double.toString(operand1 + operand2);
+    }
+ 
+    /**
+     * Method <i>subtract</i> the given double values.
+     *
+     * @param a The first input double
+     * @param b The second input double
+     * @return Error message - if at least one NOT double<br>
+     * converted to string difference - if both are double
+     */
+    @Override
+    public String subtract(String a, String b) {
+        if (!isDouble(a) || !isDouble(b)) {
+            return "Wrong argument type";
+        }
+        Double operand1 = Double.parseDouble(a);
+        Double operand2 = Double.parseDouble(b);
+        return Double.toString(operand1 - operand2);
+    }
+ 
+    /**
+     * Method <i>multiply</i> the given double values.
+     *
+     * @param a The first input double
+     * @param b The second input double
+     * @return Error message - if at least one NOT double<br>
+     * converted to string product - if both are double
+     */
+    @Override
+    public String multiply(String a, String b) {
+        if (!isDouble(a) || !isDouble(b)) {
+            return "Wrong argument type";
+        }
+        Double operand1 = Double.parseDouble(a);
+        Double operand2 = Double.parseDouble(b);
+        return Double.toString(operand1 * operand2);
+    }
+ 
+    /**
+     * Method <i>divide</i> the given double values.
+     *
+     * @param a The first input double
+     * @param b The second input double
+     * @return Error message - if at least one NOT double<br>
+     * converted to string quotient - if both are double
+     */
+    @Override
+    public String divide(String a, String b) {
+        if (!isDouble(a) || !isDouble(b)) {
+            return "Wrong argument type";
+        }
+        double operand1 = Double.parseDouble(a);
+        double operand2 = Double.parseDouble(b);
+        if (operand2 == 0) {
+            return "Division by zero";
+        }
+        return Double.toString(operand1 / operand2);
+    }
+}
+ 
+/**
+ * The child non-abstract class.
+ * Implemented via inheritance.
+ * It works with Strings.
+ */
+class StringCalculator extends Calculator {
+    /**
+     * Method <i>add</i> the given strings.
+     *
+     * @param a The first input string
+     * @param b The second input string
+     * @return Concatenated strings
+     */
+    @Override
+    public String add(String a, String b) {
+        return a + b;
+    }
+ 
+    /**
+     * Method <i>subtract</i> the given strings.
+     *
+     * @param a The first input string
+     * @param b The second input string
+     * @return It's invalid -> Error message.
+     */
+    @Override
+    public String subtract(String a, String b) {
+        return "Unsupported operation for strings";
+    }
+ 
+    /**
+     * Method <i>multiply</i> the given strings.
+     *
+     * @param a The first input string
+     * @param b The second input string
+     * @return String <strong>b</strong> times - if <strong>b</strong> is integer<br>
+     * Error message - if <strong>b</strong> NOT natural number
+     */
+    @Override
+    public String multiply(String a, String b) {
+        if (isInteger(b) && Integer.parseInt(b) > 0) {
+            int times = Integer.parseInt(b);
+            StringBuilder product = new StringBuilder();
+            for (int i = 0; i < times; i++) {
+                product.append(a);
+            }
+            return product.toString();
+        }
+        return "Wrong argument type";
+    }
+ 
+    /**
+     * Method <i>divide</i> the given strings.
+     *
+     * @param a The first input string
+     * @param b The second input string
+     * @return It's invalid -> Error message.
+     */
+    @Override
+    public String divide(String a, String b) {
+        return "Unsupported operation for strings";
+    }
+}
+ 
+/**
+ * The enum of types.
+ */
+enum CalculatorType {
+    /**
+     * Integer type for calculator.
+     */
+    INTEGER,
+    /**
+     * Double type for calculator.
+     */
+    DOUBLE,
+    /**
+     * String type for calculator.
+     */
+    STRING,
+    /**
+     * Incorrect type for calculator -> Error message.
+     */
+    INCORRECT
+}
+ 
+/**
+ * The enum of operations.
+ */
+enum OperationType {
+    /**
+     * Operation of addition(+).
+     */
+    ADDITION,
+    /**
+     * Operation of subtraction(-).
+     */
+    SUBTRACTION,
+    /**
+     * Operation of multiplication(*).
+     */
+    MULTIPLICATION,
+    /**
+     * Operation of division(/).
+     */
+    DIVISION,
+    /**
+     * Invalid operation type.
+     */
+    INCORRECT
+}
