@@ -1,0 +1,1292 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.HashMap;
+
+/**
+ * This is my Main class, here I will write my <strong>code</strong>.
+ *
+ * @author Vladislav Grigorev
+ * @version 1.1
+ * @since 1.0
+ */
+
+public final class Main {
+    /**
+     * This is our board instance, allow us to get access to the board.
+     */
+    private static Board chessBoard;
+
+    /**
+     * Here start point of the program.
+     * We are implementing a chess Game.
+     * It allows us to get various
+     * variants of moves and possible pieces' captures.
+     *
+     * @param args Array with parameters of the program
+     */
+    public static void main(String[] args) {
+        Main obj = new Main();
+        String pathToFile = "input.txt"; // we work with files
+        String pathToFileOut = "output.txt";
+        File file = new File(pathToFile);
+        File out = new File(pathToFileOut);
+        ChessPiece chesspiece = null;         // our piece
+        String allNumberPieces = null; // the initial value should be null to be a barrier for the program
+        Set<String> allOptions = new LinkedHashSet<>();
+        byte kingBlackCounter = 0;    // number of black kings
+        byte kingWhiteCounter = 0;    // number of white kings
+        int piecesCounter = 0;        // total number of figures
+        try (Scanner scanner = new Scanner(file)) {
+            String inp = null;
+            try {
+                inp = scanner.next();
+                try {
+                    Integer.parseInt(inp);
+                } catch (NumberFormatException ex) {
+                    throw new InvalidBoardSizeException();
+                }
+                if (Integer.parseInt(inp) < Integer.parseInt("3") || Integer.parseInt(inp) > Integer.parseInt("1000")) {
+                    throw new InvalidBoardSizeException();
+                }
+            } catch (InvalidBoardSizeException ex) {
+                obj.printDataOut(out, ex.getMessage());
+                System.exit(0);
+            }
+            chessBoard = new Board(Integer.parseInt(inp)); // instance of the chess Board
+            try {
+                allNumberPieces = scanner.next();
+                try {
+                    Integer.parseInt(allNumberPieces);
+                } catch (NumberFormatException ex) {
+                    throw new InvalidNumberOfPiecesException();
+                }
+                if (Integer.parseInt(allNumberPieces) < 2
+                        || Integer.parseInt(allNumberPieces) > Integer.parseInt(inp) * Integer.parseInt(inp)) {
+                    throw new InvalidNumberOfPiecesException();
+                }
+            } catch (InvalidNumberOfPiecesException ex) {
+                obj.printDataOut(out, ex.getMessage());
+                System.exit(0);
+            }
+            while (scanner.hasNext()) {         // Iterate over pieces
+                String piece = null;
+                try {
+                    piece = scanner.next();
+                    Set<String> piecesSet = new HashSet<>(); // set of all possible chess pieces
+                    piecesSet.add("Pawn"); piecesSet.add("King"); piecesSet.add("Knight");
+                    piecesSet.add("Rook"); piecesSet.add("Queen"); piecesSet.add("Bishop");
+                    if (!piecesSet.contains(piece)) {
+                        throw new InvalidPieceNameException();
+                    }
+                } catch (InvalidPieceNameException ex) {
+                    obj.printDataOut(out, ex.getMessage());
+                    System.exit(0);
+                }
+                String color = null;     // color of the piece
+                try {
+                    color = scanner.next(); Set<String> colorSet = new HashSet<>();
+                    colorSet.add("Black"); colorSet.add("White");
+                    if (!colorSet.contains(color)) {
+                        throw new InvalidPieceColorException();
+                    }
+                } catch (InvalidPieceColorException ex) {
+                    obj.printDataOut(out, ex.getMessage());
+                    System.exit(0);
+                }
+                String posX = null;     // check for the position
+                String posY = null;
+                try {
+                    posX = scanner.next(); posY = scanner.next();
+                    try {
+                        Integer.parseInt(posX); Integer.parseInt(posY);
+
+                    } catch (NumberFormatException ex) {        // exceptions handling
+                        throw new InvalidPiecePositionException();
+                    }
+                    if (Integer.parseInt(inp) < Integer.parseInt(posX) || Integer.parseInt(inp) < Integer.parseInt(posY)
+                            || Integer.parseInt(posX) < 1 || Integer.parseInt(posY) < 1) {
+                        throw new InvalidPiecePositionException();
+                    }
+                } catch (InvalidPiecePositionException ex) {
+                    obj.printDataOut(out, ex.getMessage());
+                    System.exit(0);
+                }
+                PiecePosition pos = new PiecePosition(Integer.parseInt(posX), Integer.parseInt(posY));
+                if (allOptions.contains(pos.toString())) {
+                    obj.printDataOut(out, "Invalid piece position\n");
+                    System.exit(0);
+                }
+                if (piece.equals("King") && color.equals("Black")) {
+                    kingBlackCounter++;
+                }
+                if (piece.equals("King") && color.equals("White")) {
+                    kingWhiteCounter++;
+                }
+                try {
+                    if (kingBlackCounter == 2 || kingWhiteCounter == 2) {   // only one king allowed for each person
+                        throw new InvalidGivenKingsException();
+                    }
+                } catch (InvalidGivenKingsException ex) {
+                    obj.printDataOut(out, ex.getMessage()); System.exit(0);
+                }
+                allOptions.add(pos.toString());
+                PieceColor col = PieceColor.parse(color);
+                switch (piece) {
+                    case ("Pawn"):
+                        chesspiece = new Pawn(pos, col); break;
+                    case ("King"):
+                        chesspiece = new King(pos, col); break;
+                    case ("Knight"):
+                        chesspiece = new Knight(pos, col); break;
+                    case ("Rook"):
+                        chesspiece = new Rook(pos, col); break;
+                    case ("Queen"):
+                        chesspiece = new Queen(pos, col); break;
+                    case ("Bishop"):
+                        chesspiece = new Bishop(pos, col); break;
+                    default:
+                        return;
+                }
+                chessBoard.addPiece(chesspiece);    // adding new piece
+                piecesCounter += 1;
+            }
+        } catch (FileNotFoundException e) {
+            obj.printDataOut(out, "No file found: " + pathToFile);
+        }
+        if (piecesCounter != Integer.parseInt(allNumberPieces)) {
+            obj.printDataOut(out, "Invalid number of pieces\n");
+            System.exit(0);
+        }
+        if (kingWhiteCounter != 1 || kingBlackCounter != 1) {
+            obj.printDataOut(out, "Invalid given Kings\n");
+            System.exit(0);
+        }
+        for (String elem : allOptions) {   // check in our set of coordinates
+            obj.printDataOut(out, String.valueOf(chessBoard.getPiecePossibleMovesCount((chessBoard.getPiece(
+                    new PiecePosition(Integer.parseInt(elem.split(" ")[0]),
+                            Integer.parseInt(elem.split(" ")[1])))))));
+            obj.printDataOut(out, " ");
+            obj.printDataOut(out, String.valueOf(chessBoard.getPiecePossibleCapturesCount((chessBoard.getPiece(
+                    new PiecePosition(Integer.parseInt(elem.split(" ")[0]),
+                            Integer.parseInt(elem.split(" ")[1])))))));
+            obj.printDataOut(out, "\n");
+        }
+    }
+
+    /**
+     * This method allows to print String value to the provided output file.
+     *
+     * @param out File with the filepath
+     * @param mes obtained string
+     */
+    private void printDataOut(File out, String mes) {
+        try (FileWriter writer = new FileWriter(out, true)) {
+            writer.write(mes);
+        } catch (IOException e) {
+            //     System.out.printf("An exception occurred %s", e.getMessage());
+            System.exit(0);
+        }
+    }
+}
+
+/**
+ * This is the basic class with the characteristics of the board,
+ * the positions of the figures and a dictionary for easy access
+ * to the figures.
+ */
+class Board {
+    /**
+     * This is the dictionary - we can easily get access to the
+     * chess piece via its coordinates.
+     */
+    private Map<String, ChessPiece> positionsToPieces = new HashMap<>(); // dictionary
+    /**
+     * This is the size of the chess Board.
+     */
+    private int size;
+
+    public Board(int boardSize) {
+        this.size = boardSize;
+    }
+
+    /**
+     * Method <i>getPiecePossibleMovesCount</i> returns available moves
+     * for the particular chess piece.
+     *
+     * @param piece The chess piece itself
+     * @return number of moves
+     */
+    public int getPiecePossibleMovesCount(ChessPiece piece) {
+        return piece.getMovesCount(positionsToPieces, size);
+    }
+
+    /**
+     * Method <i>getPiecePossibleCapturesCount</i> returns available captures
+     * for the particular chess piece.
+     *
+     * @param piece The chess piece itself
+     * @return number of possible captures
+     */
+    public int getPiecePossibleCapturesCount(ChessPiece piece) {
+        return piece.getCapturesCount(positionsToPieces, size);
+    }
+
+    /**
+     * Method <i>addPiece</i> adds piece to the Map.
+     *
+     * @param piece The chess piece itself
+     */
+    public void addPiece(ChessPiece piece) {
+        positionsToPieces.put(piece.getPosition().toString(), piece);
+    }
+
+    /**
+     * Method <i>getPiece</i> returns the value of the map via provided key value.
+     *
+     * @param position (x, y) coordinates
+     * @return The chess piece itself
+     */
+    public ChessPiece getPiece(PiecePosition position) {
+        return positionsToPieces.get(position.toString());
+    }
+}
+
+/**
+ * This Class determines current position of the piece
+ * in the coordinate system.
+ */
+class PiecePosition {
+    /**
+     * x coordinate of the piece.
+     */
+    private int x;
+    /**
+     * y coordinate of the piece.
+     */
+    private int y;
+
+    public PiecePosition(int onX, int onY) {
+        this.x = onX;
+        this.y = onY;
+    }
+
+    /**
+     * Method <i>getX</i> returns the coordinate along the abscissa axis.
+     *
+     * @return X coordinate.
+     */
+    public int getX() {
+        return x;
+    }
+
+    /**
+     * Method <i>getY</i> returns the coordinate along the ordinate axis.
+     *
+     * @return Y coordinate.
+     */
+    public int getY() {
+        return y;
+    }
+
+    @Override
+    public String toString() {
+        return x + " " + y;
+    }
+
+}
+
+/**
+ * This abstract parent Class determines current position and color
+ * of a particular chess piece.
+ */
+abstract class ChessPiece {
+    /**
+     * This is the position of the piece.
+     */
+    protected PiecePosition position;
+    /**
+     * And the color of the piece.
+     */
+    protected PieceColor color;
+
+    public ChessPiece(PiecePosition piecePosition, PieceColor pieceColor) {
+        this.position = piecePosition;
+        this.color = pieceColor;
+    }
+
+    /**
+     * Method <i>getPosition</i> returns the position.
+     *
+     * @return The position in the coordinates.
+     */
+    public PiecePosition getPosition() {
+        return position;
+    }
+
+    /**
+     * Method <i>getColor</i> returns the color.
+     *
+     * @return The chess piece color(Black or White)
+     */
+    public PieceColor getColor() {
+        return color;
+    }
+
+    public abstract int getMovesCount(Map<String, ChessPiece> positions, int boardSize);
+
+    public abstract int getCapturesCount(Map<String, ChessPiece> positions, int boardSize);
+}
+
+/**
+ * Implementation of moves and captures of the bishop.
+ */
+interface BishopMovement {
+    int getDiagonalMovesCount(PiecePosition position, PieceColor color,
+                              Map<String, ChessPiece> positions, int boardSize);
+
+    int getDiagonalCapturesCount(PiecePosition position, PieceColor color,
+                                 Map<String, ChessPiece> positions, int boardSize);
+
+}
+
+/**
+ * Implementation of moves and captures of the rook.
+ */
+interface RookMovement {
+    int getOrthogonalMovesCount(PiecePosition position, PieceColor color,
+                                Map<String, ChessPiece> positions, int boardSize);
+
+    int getOrthogonalCapturesCount(PiecePosition position, PieceColor color,
+                                   Map<String, ChessPiece> positions, int boardSize);
+}
+
+/**
+ * This child-class counts possible moves and captures
+ * of the Knight.
+ */
+class Knight extends ChessPiece {
+
+    public Knight(PiecePosition position, PieceColor color) {
+        super(position, color);
+    }
+
+    /**
+     * This method counts possible moves/free positions for the current move of the chess piece <i>Knight</i>.
+     *
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of moves
+     */
+    public int getMovesCount(Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        if ((x + 1 <= boardSize) && (y + 2 <= boardSize) && (!positions.containsKey(x + 1 + " " + (y + 2))
+                || positions.get(x + 1 + " " + (y + 2)).color != color)) {
+            count += 1;
+        }
+        if ((x + 2 <= boardSize) && (y + 1 <= boardSize) && (!positions.containsKey(x + 2 + " " + (y + 1))
+                || positions.get(x + 2 + " " + (y + 1)).color != color)) {
+            count += 1;
+        }
+        if ((x + 1 <= boardSize) && (y - 2 > 0) && (!positions.containsKey(x + 1 + " " + (y - 2))
+                || positions.get(x + 1 + " " + (y - 2)).color != color)) {
+            count += 1;
+        }
+        if ((x + 2 <= boardSize) && (y - 1 > 0) && (!positions.containsKey(x + 2 + " " + (y - 1))
+                || positions.get(x + 2 + " " + (y - 1)).color != color)) {
+            count += 1;
+        }
+        if ((x - 1 > 0) && (y + 2 <= boardSize) && (!positions.containsKey(x - 1 + " " + (y + 2))
+                || positions.get(x - 1 + " " + (y + 2)).color != color)) {
+            count += 1;
+        }
+        if ((x - 2 > 0) && (y + 1 <= boardSize) && (!positions.containsKey(x - 2 + " " + (y + 1))
+                || positions.get(x - 2 + " " + (y + 1)).color != color)) {
+            count += 1;
+        }
+        if ((x - 1 > 0) && (y - 2 > 0) && (!positions.containsKey(x - 1 + " " + (y - 2))
+                || positions.get(x - 1 + " " + (y - 2)).color != color)) {
+            count += 1;
+        }
+        if ((x - 2 > 0) && (y - 1 > 0) && (!positions.containsKey(x - 2 + " " + (y - 1))
+                || positions.get(x - 2 + " " + (y - 1)).color != color)) {
+            count += 1;
+        }
+        return count;
+    }
+
+    /**
+     * This method counts possible captures/enemy positions for the current move of the chess piece <i>Knight</i>.
+     *
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible captures
+     */
+    public int getCapturesCount(Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        if ((x + 1 <= boardSize) && (y + 2 <= boardSize) && (positions.containsKey(x + 1 + " " + (y + 2))
+                && positions.get(x + 1 + " " + (y + 2)).color != color)) {
+            count += 1;
+        }
+        if ((x + 2 <= boardSize) && (y + 1 <= boardSize) && (positions.containsKey(x + 2 + " " + (y + 1))
+                && positions.get(x + 2 + " " + (y + 1)).color != color)) {
+            count += 1;
+        }
+        if ((x + 1 <= boardSize) && (y - 2 > 0) && (positions.containsKey(x + 1 + " " + (y - 2))
+                && positions.get(x + 1 + " " + (y - 2)).color != color)) {
+            count += 1;
+        }
+        if ((x + 2 <= boardSize) && (y - 1 > 0) && (positions.containsKey(x + 2 + " " + (y - 1))
+                && positions.get(x + 2 + " " + (y - 1)).color != color)) {
+            count += 1;
+        }
+        if ((x - 1 > 0) && (y + 2 <= boardSize) && (positions.containsKey(x - 1 + " " + (y + 2))
+                && positions.get(x - 1 + " " + (y + 2)).color != color)) {
+            count += 1;
+        }
+        if ((x - 2 > 0) && (y + 1 <= boardSize) && (positions.containsKey(x - 2 + " " + (y + 1))
+                && positions.get(x - 2 + " " + (y + 1)).color != color)) {
+            count += 1;
+        }
+        if ((x - 1 > 0) && (y - 2 > 0) && (positions.containsKey(x - 1 + " " + (y - 2))
+                && positions.get(x - 1 + " " + (y - 2)).color != color)) {
+            count += 1;
+        }
+        if ((x - 2 > 0) && (y - 1 > 0) && (positions.containsKey(x - 2 + " " + (y - 1))
+                && positions.get(x - 2 + " " + (y - 1)).color != color)) {
+            count += 1;
+        }
+        return count;
+    }
+}
+
+/**
+ * This child-class counts possible moves and captures
+ * of the King.
+ */
+class King extends ChessPiece {
+
+    public King(PiecePosition position, PieceColor color) {
+        super(position, color);
+    }
+
+    /**
+     * This method counts possible moves/free positions for the current move of the chess piece <i>King</i>.
+     *
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of moves
+     */
+    public int getMovesCount(Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x - 1; i <= x + 1; i++) {
+            for (int j = y + 1; j >= y - 1; j--) {
+                if ((i == x && j == y) || i <= 0 || j <= 0 || i > boardSize || j > boardSize) {
+                    continue;
+                }
+                if (!positions.containsKey(i + " " + j)) {
+                    count += 1;
+                }
+                if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                    count += 1;
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * This method counts possible captures/enemy positions for the current move of the chess piece <i>King</i>.
+     *
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible captures
+     */
+    public int getCapturesCount(Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x - 1; i <= x + 1; i++) {
+            for (int j = y + 1; j >= y - 1; j--) {
+                if ((i == x && j == y) || i <= 0 || j <= 0 || i > boardSize || j > boardSize) {
+                    continue;
+                }
+                if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                    count += 1;
+                }
+            }
+        }
+        return count;
+    }
+}
+
+/**
+ * This child-class counts possible moves and captures
+ * of the Pawn.
+ */
+class Pawn extends ChessPiece {
+
+    public Pawn(PiecePosition position, PieceColor color) {
+        super(position, color);
+    }
+
+    /**
+     * This method counts possible moves/free positions for the current move of the chess piece <i>Pawn</i>.
+     *
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of moves
+     */
+    public int getMovesCount(Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        if (positions.get(x + " " + y).color == PieceColor.WHITE) {
+            if (!positions.containsKey(x + " " + (y + 1)) && x > 0 && y + 1 <= boardSize) {
+                count += 1;
+            }
+            if (positions.containsKey(x + 1 + " " + (y + 1)) && positions.get(x + 1 + " " + (y + 1)).color != color
+                    && x + 1 <= boardSize && y + 1 <= boardSize) {
+                count += 1;
+            }
+            if (positions.containsKey(x - 1 + " " + (y + 1)) && positions.get(x - 1 + " " + (y + 1)).color != color
+                    && x - 1 > 0 && y + 1 <= boardSize) {
+                count += 1;
+            }
+        } else {
+            if (!positions.containsKey(x + " " + (y - 1)) && x > 0 && y - 1 > 0) {
+                count += 1;
+            }
+            if (positions.containsKey(x + 1 + " " + (y - 1)) && positions.get(x + 1 + " " + (y - 1)).color != color
+                    && x + 1 <= boardSize && y - 1 > 0) {
+                count += 1;
+            }
+            if (positions.containsKey(x - 1 + " " + (y - 1))
+                    && positions.get(x - 1 + " " + (y - 1)).color != color && x - 1 > 0 && y - 1 > 0) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * This method counts possible captures/enemy positions for the current move of the chess piece <i>Pawn</i>.
+     *
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible captures
+     */
+    public int getCapturesCount(Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        if (positions.get(x + " " + y).color == PieceColor.WHITE) {
+
+            if (positions.containsKey(x + 1 + " " + (y + 1)) && positions.get(x + 1 + " " + (y + 1)).color != color
+                    && x + 1 <= boardSize && y + 1 <= boardSize) {
+                count += 1;
+            }
+            if (positions.containsKey(x - 1 + " " + (y + 1)) && positions.get(x - 1 + " " + (y + 1)).color != color
+                    && x - 1 > 0 && y + 1 <= boardSize) {
+                count += 1;
+            }
+        } else if (positions.get(x + " " + y).color == PieceColor.BLACK) {
+            if (positions.containsKey(x + 1 + " " + (y - 1)) && positions.get(x + 1 + " " + (y - 1)).color != color
+                    && x + 1 <= boardSize && y - 1 > 0) {
+                count += 1;
+            }
+            if (positions.containsKey(x - 1 + " " + (y - 1)) && positions.get(x - 1 + " " + (y - 1)).color != color
+                    && x - 1 > 0 && y - 1 > 0) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+}
+
+/**
+ * This child-class counts possible moves and captures
+ * of the Bishop.
+ */
+class Bishop extends ChessPiece implements BishopMovement {
+
+    public Bishop(PiecePosition position, PieceColor color) {
+        super(position, color);
+    }
+
+    /**
+     * This method counts possible diagonal moves/free positions
+     * of the chess piece <i>Bishop</i> until another chess piece meets.
+     *
+     * @param position  coordinate position
+     * @param color     enum color (Black \ White)
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible diagonal moves
+     */
+    @Override
+    public int getDiagonalMovesCount(PiecePosition position, PieceColor color,
+                                     Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x + 1, j = y + 1; i <= boardSize && j <= boardSize; i++, j++) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+            count += 1;
+        }
+        for (int i = x - 1, j = y - 1; i > 0 && j > 0; i--, j--) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+            count += 1;
+        }
+
+        for (int i = x - 1, j = y + 1; i > 0 && j <= boardSize; i--, j++) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+            count += 1;
+        }
+
+        for (int i = x + 1, j = y - 1; i <= boardSize && j > 0; i++, j--) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+            count += 1;
+        }
+        return count;
+    }
+
+    /**
+     * This method counts possible diagonal capture/free capture positions of the chess piece <i>Bishop</i>.
+     *
+     * @param position  coordinate position
+     * @param color     enum color (Black \ White)
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible diagonal captures
+     */
+    @Override
+    public int getDiagonalCapturesCount(PiecePosition position, PieceColor color,
+                                        Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x + 1, j = y + 1; i <= boardSize && j <= boardSize; i++, j++) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+        }
+        for (int i = x - 1, j = y - 1; i > 0 && j > 0; i--, j--) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+        }
+
+        for (int i = x - 1, j = y + 1; i > 0 && j <= boardSize; i--, j++) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+        }
+
+        for (int i = x + 1, j = y - 1; i <= boardSize && j > 0; i++, j--) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * This method sends the result to the main function.
+     *
+     * @param positions provided dictionary
+     * @param boardSize size of the chess Board
+     * @return all possible moves
+     */
+    public int getMovesCount(Map<String, ChessPiece> positions, int boardSize) {
+        return getDiagonalMovesCount(position, color, positions, boardSize);
+    }
+
+    /**
+     * This method sends the result to the main function.
+     *
+     * @param positions provided dictionary
+     * @param boardSize size of the chess Board
+     * @return all possible captures
+     */
+    public int getCapturesCount(Map<String, ChessPiece> positions, int boardSize) {
+        return getDiagonalCapturesCount(position, color, positions, boardSize);
+    }
+}
+
+/**
+ * This child-class counts possible moves and captures
+ * of the Rook.
+ */
+class Rook extends ChessPiece implements RookMovement {
+
+    public Rook(PiecePosition position, PieceColor color) {
+        super(position, color);
+    }
+
+    /**
+     * This method counts possible orthogonal moves/free positions
+     * of the chess piece <i>Rook</i> until another chess piece meets.
+     *
+     * @param position  coordinate position
+     * @param color     enum color (Black \ White)
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible orthogonal moves
+     */
+    @Override
+    public int getOrthogonalMovesCount(PiecePosition position, PieceColor color,
+                                       Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x + 1; i <= boardSize; i++) {
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color == color) {
+                break;
+            }
+            count += 1;
+        }
+        for (int i = y + 1; i <= boardSize; i++) {
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color == color) {
+                break;
+            }
+            count += 1;
+        }
+
+        for (int i = y - 1; i > 0; i--) {
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color == color) {
+                break;
+            }
+            count += 1;
+        }
+
+        for (int i = x - 1; i > 0; i--) {
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color == color) {
+                break;
+            }
+            count += 1;
+        }
+        return count;
+    }
+
+    /**
+     * This method counts possible orthogonal capture/free capture positions of the chess piece <i>Rook</i>.
+     *
+     * @param position  coordinate position
+     * @param color     enum color (Black \ White)
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible orthogonal captures
+     */
+    @Override
+    public int getOrthogonalCapturesCount(PiecePosition position, PieceColor color,
+                                          Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x + 1; i <= boardSize; i++) {
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color == color) {
+                break;
+            }
+        }
+        for (int i = y + 1; i <= boardSize; i++) {
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color == color) {
+                break;
+            }
+        }
+
+        for (int i = y - 1; i > 0; i--) {
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color == color) {
+                break;
+            }
+        }
+
+        for (int i = x - 1; i > 0; i--) {
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color == color) {
+                break;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * This method sends the result to the main function.
+     *
+     * @param positions provided dictionary
+     * @param boardSize size of the chess Board
+     * @return all possible orthogonal moves
+     */
+    public int getMovesCount(Map<String, ChessPiece> positions, int boardSize) {
+        return getOrthogonalMovesCount(position, color, positions, boardSize);
+    }
+
+    /**
+     * This method sends the result to the main function.
+     *
+     * @param positions provided dictionary
+     * @param boardSize size of the chess Board
+     * @return all possible orthogonal captures
+     */
+    public int getCapturesCount(Map<String, ChessPiece> positions, int boardSize) {
+        return getOrthogonalCapturesCount(position, color, positions, boardSize);
+    }
+}
+
+/**
+ * This child-class counts possible moves and captures
+ * of the Queen.
+ */
+class Queen extends ChessPiece implements RookMovement, BishopMovement {
+
+    public Queen(PiecePosition position, PieceColor color) {
+        super(position, color);
+    }
+
+    /**
+     * This method counts possible diagonal moves/free positions
+     * of the chess piece <i>Queen</i> until another chess piece meets.
+     *
+     * @param position  coordinate position
+     * @param color     enum color (Black \ White)
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible diagonal moves
+     */
+    @Override
+    public int getDiagonalMovesCount(PiecePosition position, PieceColor color,
+                                     Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x + 1, j = y + 1; i <= boardSize && j <= boardSize; i++, j++) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+            count += 1;
+        }
+        for (int i = x - 1, j = y - 1; i > 0 && j > 0; i--, j--) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+            count += 1;
+        }
+
+        for (int i = x - 1, j = y + 1; i > 0 && j <= boardSize; i--, j++) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+            count += 1;
+        }
+
+        for (int i = x + 1, j = y - 1; i <= boardSize && j > 0; i++, j--) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+            count += 1;
+        }
+        return count;
+    }
+
+    /**
+     * This method counts possible diagonal capture/free capture positions of the chess piece <i>Queen</i>.
+     *
+     * @param position  coordinate position
+     * @param color     enum color (Black \ White)
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible diagonal captures
+     */
+    @Override
+    public int getDiagonalCapturesCount(PiecePosition position, PieceColor color,
+                                        Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x + 1, j = y + 1; i <= boardSize && j <= boardSize; i++, j++) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+        }
+        for (int i = x - 1, j = y - 1; i > 0 && j > 0; i--, j--) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+        }
+
+        for (int i = x - 1, j = y + 1; i > 0 && j <= boardSize; i--, j++) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+        }
+
+        for (int i = x + 1, j = y - 1; i <= boardSize && j > 0; i++, j--) {
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + j) && positions.get(i + " " + j).color == color) {
+                break;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * This method counts possible orthogonal moves/free positions
+     * of the chess piece <i>Queen</i> until another chess piece meets.
+     *
+     * @param position  coordinate position
+     * @param color     enum color (Black \ White)
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible orthogonal moves
+     */
+    @Override
+    public int getOrthogonalMovesCount(PiecePosition position, PieceColor color,
+                                       Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x + 1; i <= boardSize; i++) {
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color == color) {
+                break;
+            }
+            count += 1;
+        }
+        for (int i = y + 1; i <= boardSize; i++) {
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color == color) {
+                break;
+            }
+            count += 1;
+        }
+
+        for (int i = y - 1; i > 0; i--) {
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color == color) {
+                break;
+            }
+            count += 1;
+        }
+
+        for (int i = x - 1; i > 0; i--) {
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color == color) {
+                break;
+            }
+            count += 1;
+        }
+        return count;
+    }
+
+    /**
+     * This method counts possible orthogonal capture/free capture positions of the chess piece <i>Queen</i>.
+     *
+     * @param position  coordinate position
+     * @param color     enum color (Black \ White)
+     * @param positions map of the pieces
+     * @param boardSize size of the chess Board
+     * @return number of possible orthogonal captures
+     */
+    @Override
+    public int getOrthogonalCapturesCount(PiecePosition position, PieceColor color,
+                                          Map<String, ChessPiece> positions, int boardSize) {
+        int count = 0;
+        int x = position.getX();
+        int y = position.getY();
+        for (int i = x + 1; i <= boardSize; i++) {
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color == color) {
+                break;
+            }
+        }
+        for (int i = y + 1; i <= boardSize; i++) {
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color == color) {
+                break;
+            }
+        }
+
+        for (int i = y - 1; i > 0; i--) {
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(x + " " + i) && positions.get(x + " " + i).color == color) {
+                break;
+            }
+        }
+
+        for (int i = x - 1; i > 0; i--) {
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color != color) {
+                count += 1;
+                break;
+            }
+            if (positions.containsKey(i + " " + y) && positions.get(i + " " + y).color == color) {
+                break;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * This method sends the result to the main function.
+     *
+     * @param positions provided dictionary
+     * @param boardSize size of the chess Board
+     * @return all possible moves of the Queen
+     */
+    public int getMovesCount(Map<String, ChessPiece> positions, int boardSize) {
+        return getOrthogonalMovesCount(position, color, positions, boardSize)
+                + getDiagonalMovesCount(position, color, positions, boardSize);
+    }
+
+    /**
+     * This method sends the result to the main function.
+     *
+     * @param positions provided dictionary
+     * @param boardSize size of the chess Board
+     * @return all possible moves of the Queen
+     */
+    public int getCapturesCount(Map<String, ChessPiece> positions, int boardSize) {
+        return getOrthogonalCapturesCount(position, color, positions, boardSize)
+                + getDiagonalCapturesCount(position, color, positions, boardSize);
+    }
+}
+
+/**
+ * This enum corresponds to the
+ * colors of the chess pieces.
+ */
+enum PieceColor {
+    /**
+     * White color.
+     */
+    WHITE,
+    /**
+     * Black color.
+     */
+    BLACK;
+
+    /**
+     * @param color obtained string representation
+     * @return enum value of the color
+     */
+    public static PieceColor parse(String color) {
+        return ("White".equals(color)) ? PieceColor.WHITE : PieceColor.BLACK;
+    }
+}
+
+/**
+ * This exception limits the size of the chessboard.
+ */
+class InvalidBoardSizeException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Invalid board size\n";
+    }
+
+}
+
+/**
+ * This exception limits the number of chess pieces.
+ */
+class InvalidNumberOfPiecesException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Invalid number of pieces\n";
+    }
+
+}
+
+/**
+ * This exception checks for the correctness of the entered name of the chess piece.
+ */
+class InvalidPieceNameException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Invalid piece name\n";
+    }
+
+}
+
+/**
+ * This exception checks for the correctness of the entered color of the chess piece.
+ */
+class InvalidPieceColorException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Invalid piece color\n";
+    }
+
+}
+
+/**
+ * This exception checks for the correctness of the entered position of the chess piece.
+ */
+class InvalidPiecePositionException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Invalid piece position\n";
+    }
+
+}
+
+/**
+ * This exception limits the number of kings (exactly one for each side).
+ */
+class InvalidGivenKingsException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Invalid given Kings\n";
+    }
+
+}
+
+/**
+ * This exception checks for other program violations.
+ */
+class InvalidInputException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Invalid input\n";
+    }
+}
