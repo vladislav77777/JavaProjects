@@ -1,0 +1,522 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.List;
+import java.util.Arrays;
+
+/**
+ * This is my Main class, here I will write my <strong>code</strong>.
+ *
+ * @author Vladislav Grigorev
+ * @version 1.1
+ * @since 1.0
+ */
+public final class Assignment5 {
+    private static String pathToFile = "input.txt"; // we work with files
+    private static File file = new File(pathToFile);
+    private static boolean isInvalidInputs = false;
+    private static int numberOfAnimals = 0;
+
+    private Assignment5() {
+    }
+
+    public static void main(String[] args) {
+        int days = 0;
+        Field grass = new Field(0F);
+        String inp;
+
+        try (Scanner scanner = new Scanner(file)) {
+            try {
+                inp = scanner.next();
+                days = Integer.parseInt(inp);
+                if (days < 1 || days > Integer.parseInt("30")) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                isInvalidInputs = true;
+            }
+            try {
+                inp = scanner.next();
+                grass.setGrassAmount(Float.parseFloat(inp));
+                if (grass.getGrassAmount() < 0 || grass.getGrassAmount() > Integer.parseInt("100")) {
+                    throw new GrassOutOfBoundsException();
+                }
+
+            } catch (GrassOutOfBoundsException ex) {
+                System.out.println((new GrassOutOfBoundsException()).getMessage());
+                System.exit(0);
+            } catch (Exception ex) {
+                isInvalidInputs = true;
+            }
+            try {
+                inp = scanner.next();
+                numberOfAnimals = Integer.parseInt(inp);
+                if (numberOfAnimals < 1 || numberOfAnimals > Integer.parseInt("20")) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                isInvalidInputs = true;
+            }
+        } catch (Exception ex) {
+            System.out.println("Invalid inputs");
+            System.exit(0);
+        }
+
+        List<Animal> animals = new ArrayList<>(readAnimals());
+        runSimulation(days, grass, animals);
+        printAnimals(animals);
+    }
+
+    private static List<Animal> readAnimals() {
+        Set<String> animalsSet = new HashSet<>(Arrays.asList("Lion", "Zebra", "Boar")); // set of all possible animals
+        List<Animal> animals = new ArrayList<>();
+        String type;
+        String rememberMessage = "null";
+        int totalAmount = 0;
+        float weight;
+        float speed;
+        float energy;
+        String[] inp;
+        try (Scanner scanner = new Scanner(file)) {
+            scanner.nextLine();
+            scanner.nextLine();
+            scanner.nextLine();
+            while (scanner.hasNext()) {
+                inp = String.valueOf(scanner.nextLine()).split(" ");
+                totalAmount++;
+            }
+        } catch (FileNotFoundException ex) {
+            System.out.println("Invalid inputs");
+            System.exit(0);
+        }
+        int counter = 0;
+        try (Scanner scanner = new Scanner(file)) {
+            scanner.nextLine();
+            scanner.nextLine();
+            scanner.nextLine();
+            while ((numberOfAnimals == 0 && isInvalidInputs)
+                    || scanner.hasNext() && animals.size() != numberOfAnimals) {
+                if (numberOfAnimals == 0 && isInvalidInputs) {
+                    System.out.println("Invalid inputs");
+                    System.exit(0);
+                }
+                inp = String.valueOf(scanner.nextLine()).split(" ");
+                counter++;
+                try {
+
+                    if (inp.length != Integer.parseInt("4")) {
+                        throw new InvalidNumberOfAnimalParametersException();
+                    } else if ((!animalsSet.contains(inp[0]))) {
+                        isInvalidInputs = true;
+                    }
+                    type = inp[0];
+
+                    try {
+                        weight = Float.parseFloat(inp[1]);
+                        if (weight < Integer.parseInt("5") || weight > Integer.parseInt("200")) {
+                            throw new NumberFormatException();
+                        }
+                    } catch (NumberFormatException ex) {
+                        throw new WeightOutOfBoundsException();
+                    }
+                    try {
+                        speed = Float.parseFloat(inp[2]);
+                        if (speed < Integer.parseInt("5") || speed > Integer.parseInt("60")) {
+                            throw new NumberFormatException();
+                        }
+                    } catch (NumberFormatException ex) {
+                        throw new SpeedOutOfBoundsException();
+                    }
+                    try {
+                        energy = Float.parseFloat(inp[Integer.parseInt("3")]);
+                        if (energy < 0 || energy > Integer.parseInt("100")) {
+                            throw new NumberFormatException();
+                        }
+                    } catch (NumberFormatException ex) {
+                        throw new EnergyOutOfBoundsException();
+                    }
+                } catch (Exception ex) {
+                    rememberMessage = ex.getMessage();
+                    break;
+                }
+
+                switch (type) {
+                    case "Lion":
+                        animals.add(new Lion(weight, speed, energy));
+                        break;
+                    case "Zebra":
+                        animals.add(new Zebra(weight, speed, energy));
+                        break;
+                    case "Boar":
+                        animals.add(new Boar(weight, speed, energy));
+                        break;
+                    default:
+                        break;
+                }
+            }
+        } catch (FileNotFoundException ex) {
+            System.out.println(ex.getMessage());
+        }
+
+        if (rememberMessage.equals("Invalid number of animal parameters")) {
+            System.out.println(new InvalidNumberOfAnimalParametersException().getMessage());
+            System.exit(0);
+        } else if (totalAmount < numberOfAnimals || isInvalidInputs) {
+            System.out.println(new InvalidInputsException().getMessage());
+            System.exit(0);
+        } else if (!rememberMessage.equals("null")) {
+            System.out.println(rememberMessage);
+            System.exit(0);
+        }
+        return animals;
+    }
+
+    private static void runSimulation(int days, Field grass, List<Animal> animals) {
+        for (int i = 0; i < days; i++) {
+            removeDeadAnimals(animals);
+            for (int j = 0; j < animals.size(); j++) {
+                if (animals.size() == 1) {
+                    for (int k = i; k < days; k++) {     // Self-hunting
+                        System.out.println(new SelfHuntingException().getMessage());
+                    }
+                    System.out.println(receiveAnimalSound(animals.get(j)));
+                    System.exit(0);
+                }
+                animals.get(j).eat(animals, grass, j);
+            }
+            grass.grassGrow();
+            for (Animal animal : animals) {
+                animal.decrementEnergy();
+            }
+        }
+        removeDeadAnimals(animals);
+    }
+
+    private static void printAnimals(List<Animal> animals) {
+        for (int i = 0; i < animals.size(); i++) {
+            System.out.println(receiveAnimalSound(animals.get(i)));
+        }
+    }
+
+    private static void removeDeadAnimals(List<Animal> animals) {
+        for (int i = 0; i < animals.size(); i++) {
+            if (animals.get(i).getEnergy() == 0) {
+                animals.remove(i);
+                i--;
+            }
+        }
+    }
+
+    private static String receiveAnimalSound(Animal typeAnimal) {
+        if (typeAnimal instanceof Boar) {
+            return AnimalSound.BOAR.getSound();
+        } else if (typeAnimal instanceof Zebra) {
+            return AnimalSound.ZEBRA.getSound();
+        } else if (typeAnimal instanceof Lion) {
+            return AnimalSound.LION.getSound();
+        }
+        return "NULL";
+    }
+}
+
+class Lion extends Animal implements Carnivore {
+    Lion(float weight, float speed, float energy) {
+        super(weight, speed, energy);
+    }
+
+    @Override
+    public void eat(List<Animal> animals, Field field, int currentPosition) {
+        if (animals.get(currentPosition).getEnergy() == 0) {
+            animals.get(currentPosition).setEnergy(0);
+        } else if (currentPosition == animals.size() - 1) {
+            huntPrey(animals.get(currentPosition), animals.get(0));
+        } else {
+            huntPrey(animals.get(currentPosition), animals.get(currentPosition + 1));
+        }
+    }
+
+//    @Override
+//    public Animal choosePrey(List<Animal> list) {
+//        return null;
+//    }
+
+    @Override
+    public void huntPrey(Animal hunter, Animal prey) {
+        if (hunter.receiveTypeAnimal(hunter).equals(prey.receiveTypeAnimal(prey))) {
+            System.out.println(new CannibalismException().getMessage());
+        } else if (hunter.getEnergy() > prey.getEnergy() || hunter.getSpeed() > prey.getSpeed()) {
+            hunter.setEnergy((hunter.getEnergy() + prey.getWeight() > Integer.parseInt("100"))
+                    ? Integer.parseInt("100") : (hunter.getEnergy() + prey.getWeight()));
+            prey.setEnergy(0F);
+        } else {
+            System.out.println(new TooStrongPreyException().getMessage());
+        }
+    }
+}
+
+class Zebra extends Animal implements Herbivore {
+    Zebra(float weight, float speed, float energy) {
+        super(weight, speed, energy);
+    }
+
+    @Override
+    public void eat(List<Animal> animals, Field field, int currentPosition) {
+        if (animals.get(currentPosition).getEnergy() == 0) {
+            animals.get(currentPosition).setEnergy(0);
+        } else {
+            grazeInTheField(animals.get(currentPosition), field);
+        }
+
+    }
+
+    @Override
+    public void grazeInTheField(Animal animal, Field field) {
+        if (animal.getWeight() * Float.parseFloat("0.1") < field.getGrassAmount()) {
+            animal.setEnergy((animal.getEnergy() + animal.getWeight()
+                    * Float.parseFloat("0.1")) > Integer.parseInt("100")
+                    ? Integer.parseInt("100") : animal.getEnergy() + animal.getWeight() * Float.parseFloat("0.1"));
+            field.setGrassAmount(field.getGrassAmount() - animal.getWeight() * Float.parseFloat("0.1"));
+        }
+    }
+}
+
+class Boar extends Animal implements Omnivore {
+    Boar(float weight, float speed, float energy) {
+        super(weight, speed, energy);
+    }
+
+    @Override
+    public void eat(List<Animal> animals, Field field, int currentPosition) {
+        if (animals.get(currentPosition).getEnergy() == 0) {
+            animals.get(currentPosition).setEnergy(0);
+        } else if (currentPosition == animals.size() - 1) {
+            grazeInTheField(animals.get(currentPosition), field);
+            huntPrey(animals.get(currentPosition), animals.get(0));
+        } else {
+            grazeInTheField(animals.get(currentPosition), field);
+            huntPrey(animals.get(currentPosition), animals.get(currentPosition + 1));
+        }
+    }
+
+//    @Override
+//    public Animal choosePrey(List<Animal> list) {
+//        return null;
+//    }
+
+    @Override
+    public void huntPrey(Animal hunter, Animal prey) {
+
+        if (hunter.receiveTypeAnimal(hunter).equals(prey.receiveTypeAnimal(prey))) {
+            System.out.println(new CannibalismException().getMessage());
+        } else if (hunter.getEnergy() > prey.getEnergy() || hunter.getSpeed() > prey.getSpeed()) {
+            hunter.setEnergy((hunter.getEnergy() + prey.getWeight() > Integer.parseInt("100"))
+                    ? Integer.parseInt("100") : (hunter.getEnergy() + prey.getWeight()));
+            prey.setEnergy(0F);
+        } else {
+            System.out.println(new TooStrongPreyException().getMessage());
+        }
+    }
+
+    @Override
+    public void grazeInTheField(Animal animal, Field field) {
+        if (animal.getWeight() * Float.parseFloat("0.1") < field.getGrassAmount()) {
+            animal.setEnergy((animal.getEnergy() + animal.getWeight()
+                    * Float.parseFloat("0.1")) > Integer.parseInt("100")
+                    ? Integer.parseInt("100") : animal.getEnergy() + animal.getWeight() * Float.parseFloat("0.1"));
+            field.setGrassAmount(field.getGrassAmount() - animal.getWeight() * Float.parseFloat("0.1"));
+        }
+    }
+}
+
+abstract class Animal {
+    private float weight;
+    private float speed;
+    private float energy;
+
+    protected Animal(float weightt, float speedd, float energyy) {
+        this.weight = weightt;
+        this.speed = speedd;
+        this.energy = energyy;
+    }
+
+    public abstract void eat(List<Animal> list, Field field, int currentPosition);
+
+
+    public void decrementEnergy() {
+        this.energy--;
+        if (energy < 0) {
+            energy = 0;
+        }
+    }
+
+    public float getWeight() {
+        return weight;
+    }
+
+    public void setWeight(float weightt) {
+        this.weight = weightt;
+    }
+
+    public float getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(float speedd) {
+        this.speed = speedd;
+    }
+
+    public float getEnergy() {
+        return energy;
+    }
+
+    public void setEnergy(float energyy) {
+        this.energy = energyy;
+    }
+
+    public String receiveTypeAnimal(Animal animal) {
+        if (animal instanceof Boar) {
+            return "Boar";
+        } else if (animal instanceof Zebra) {
+            return "Zebra";
+        } else if (animal instanceof Lion) {
+            return "Lion";
+        }
+        return "NULL";
+
+    }
+}
+
+interface Carnivore {
+
+    void huntPrey(Animal hunter, Animal prey);
+}
+
+interface Herbivore {
+    void grazeInTheField(Animal animal, Field field);
+}
+
+interface Omnivore extends Carnivore, Herbivore {
+
+}
+
+class Field {
+    private float grassAmount;
+
+    Field(float grassAmountt) {
+        this.grassAmount = grassAmountt;
+    }
+
+    public void grassGrow() {
+        grassAmount *= 2;
+        if (grassAmount > Integer.parseInt("100")) {
+            grassAmount = Integer.parseInt("100");
+        }
+    }
+
+    public float getGrassAmount() {
+        return grassAmount;
+    }
+
+    public void setGrassAmount(float grassAmountt) {
+        this.grassAmount = grassAmountt;
+    }
+}
+
+enum AnimalSound {
+    LION("Roar"),
+    ZEBRA("Ihoho"),
+    BOAR("Oink");
+    private final String sound;
+
+    AnimalSound(String soundd) {
+        this.sound = soundd;
+    }
+
+    public String getSound() {
+        return sound;
+    }
+}
+
+class WeightOutOfBoundsException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "The weight is out of bounds";
+    }
+
+}
+
+class EnergyOutOfBoundsException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "The energy is out of bounds";
+    }
+
+}
+
+class SpeedOutOfBoundsException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "The speed is out of bounds";
+    }
+
+}
+
+class SelfHuntingException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Self-hunting is not allowed";
+    }
+
+}
+
+class TooStrongPreyException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "The prey is too strong or too fast to attack";
+    }
+
+}
+
+class CannibalismException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Cannibalism is not allowed";
+    }
+
+}
+
+class GrassOutOfBoundsException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "The grass is out of bounds";
+    }
+
+}
+
+class InvalidInputsException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Invalid inputs";
+    }
+
+}
+
+class InvalidNumberOfAnimalParametersException extends Exception {
+
+    @Override
+    public String getMessage() {
+        return "Invalid number of animal parameters";
+    }
+
+}
